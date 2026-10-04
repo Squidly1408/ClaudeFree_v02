@@ -1,0 +1,493 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Grain by Grain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Karla:wght@400;500;600&display=swap">
+<style>
+/* Layout: a single centered board on a slate table, quiet type above and a short colophon below. One visual world: night, always. */
+:root {
+  --table: #171b28;
+  --board: #1f2536;
+  --ink: #e9e1cf;
+  --ink-soft: #a9a594;
+  --ink-faint: #6f7184;
+  --saffron: #e6a23c;
+  --rule: #2c3349;
+  --display: "Marcellus", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --body: "Karla", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--table); color: var(--ink); }
+body {
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  padding-inline: 16px;
+  padding-block: 28px 40px;
+}
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  display: grid;
+  gap: 20px;
+}
+header { display: grid; gap: 4px; }
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(30px, 7vw, 44px);
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+  letter-spacing: 0.01em;
+}
+.board-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  background: var(--board);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--rule), 0 30px 60px -30px rgba(0,0,0,0.7);
+  overflow: hidden;
+}
+canvas { display: block; width: 100%; height: 100%; }
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px 16px;
+  font-variant-numeric: tabular-nums;
+}
+#stage { color: var(--ink); font-weight: 500; }
+#count { color: var(--ink-soft); font-size: 13px; }
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+.pace {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+}
+.pace button {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink-soft);
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.pace button[aria-pressed="true"] { background: var(--rule); color: var(--ink); }
+.primary {
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  color: var(--table);
+  background: var(--saffron);
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: opacity .2s, transform .15s;
+}
+.primary:hover { transform: translateY(-1px); }
+.primary:disabled { opacity: 0.35; cursor: default; transform: none; }
+button:focus-visible { outline: 2px solid var(--saffron); outline-offset: 2px; }
+.colophon {
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.colophon p { margin: 0; }
+.colophon em { font-style: normal; color: var(--ink); }
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow" id="no">Mandala no. —</div>
+    <h1>Grain by Grain</h1>
+  </header>
+
+  <div class="board-wrap"><canvas id="board" aria-label="A sand mandala being laid down grain by grain"></canvas></div>
+
+  <div class="status" aria-live="polite">
+    <span id="stage">Preparing the board</span>
+    <span id="count">0 grains</span>
+  </div>
+
+  <div class="controls">
+    <div class="pace" role="group" aria-label="Pace">
+      <button id="pace-slow" data-rate="45" aria-pressed="false">Meditative</button>
+      <button id="pace-mid" data-rate="160" aria-pressed="true">Steady</button>
+      <button id="pace-fast" data-rate="700" aria-pressed="false">Hurried</button>
+    </div>
+    <button class="primary" id="action">Sweep away</button>
+  </div>
+
+  <section class="colophon">
+    <p>Tibetan monks make <em>dul-tson-kyil-khor</em>, mandalas of coloured powder, by tapping sand through a thin metal funnel called a <em>chak-pur</em>. The work can take days. When it is finished it is swept to the centre and the sand is poured into moving water.</p>
+    <p>Every mandala here is drawn from a new random seed and exists only once. You can sweep it at any point. Nothing is saved.</p>
+  </section>
+</main>
+
+<script>
+(() => {
+  const canvas = document.getElementById('board');
+  const ctx = canvas.getContext('2d');
+  const elNo = document.getElementById('no');
+  const elStage = document.getElementById('stage');
+  const elCount = document.getElementById('count');
+  const btn = document.getElementById('action');
+  const paceBtns = [...document.querySelectorAll('.pace button')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Mineral pigments
+  const BASE = [
+    [236,227,207], // 0 chalk
+    [230,162,60],  // 1 saffron
+    [196,69,47],   // 2 cinnabar
+    [47,93,176],   // 3 lapis
+    [59,148,104],  // 4 malachite
+    [127,179,214], // 5 sky
+    [138,90,43],   // 6 ochre
+    [24,30,46],    // 7 indigo-black
+  ];
+  const SHADES = 3;
+  const STYLES = [];
+  BASE.forEach(c => {
+    for (let s = 0; s < SHADES; s++) {
+      const f = [0.84, 1, 1.12][s];
+      STYLES.push(`rgb(${c.map(v => Math.min(255, Math.round(v * f))).join(',')})`);
+    }
+  });
+  const PILE_STYLE = 'rgb(150,128,110)';
+
+  const MAX = 260000;
+  const gx = new Float32Array(MAX), gy = new Float32Array(MAX);
+  const gs = new Uint8Array(MAX);
+  let n = 0;
+
+  let rand = Math.random;
+  function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const pick = arr => arr[Math.floor(rand() * arr.length)];
+
+  const DENS = 26000;           // grains per normalized unit^2
+  let rate = 160;               // grains per frame
+  let size = 560, dpr = 1, half = 280, grain = 1.7;
+
+  function resize() {
+    const r = canvas.getBoundingClientRect();
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    size = r.width;
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    half = size / 2;
+    grain = Math.max(1, 1.7 * size / 560);
+    redrawAll();
+  }
+
+  function plot(i) {
+    ctx.fillStyle = STYLES[gs[i]];
+    ctx.fillRect(half + gx[i] * half * 0.98 - grain / 2, half - gy[i] * half * 0.98 - grain / 2, grain, grain);
+  }
+  function redrawAll() {
+    ctx.clearRect(0, 0, size, size);
+    if (phase === 'sweep' || phase === 'pour' || phase === 'empty') return;
+    for (let i = 0; i < n; i++) plot(i);
+  }
+
+  // ---------- design ----------
+  const MOTIFS = {
+    petal: (t, u) => t < Math.sin(Math.PI * Math.pow(u, 0.75)) * (1 - 0.35 * u) * 0.95,
+    teeth: (t, u) => t < 1 - u,
+    flame: (t, u) => t < u * 0.9,
+    scallop: (t, u) => u < 0.3 + 0.65 * (1 - t * t),
+    lattice: (t, u) => (Math.floor(t * 3) + Math.floor(u * 3)) % 2 === 0,
+    stripes: (t) => Math.floor(t * 4) % 2 === 0,
+    dots: null, // handled with real geometry
+    band: () => false,
+  };
+
+  function ringLayer(r0, r1, k, bg, fg, motif, phase) {
+    const halfArcAt = r => r * Math.PI / k;
+    return {
+      rmin: r0, rmax: r1, k, phase,
+      color(x, y, r, phi) {
+        const u = (r - r0) / (r1 - r0);
+        const t = phi / (Math.PI / k);
+        let inFg;
+        if (motif === 'dots') {
+          const ha = halfArcAt(r0 + (r1 - r0) / 2), rw = r1 - r0;
+          const dx = t * ha, dy = (u - 0.5) * rw;
+          const rad = 0.42 * Math.min(rw, 2 * ha);
+          inFg = dx * dx + dy * dy < rad * rad;
+        } else inFg = MOTIFS[motif](t, u);
+        const c = inFg ? fg : bg;
+        return c;
+      }
+    };
+  }
+
+  function makeDesign(seed) {
+    rand = mulberry(seed);
+    const layers = [];
+    const cols = [0, 1, 2, 3, 4, 5, 6];
+    const two = () => { const a = pick(cols); let b; do b = pick(cols); while (b === a); return [a, b]; };
+
+    // seed at the centre
+    const [c0, c1] = two();
+    layers.push({ name: 'the centre seed', parts: [ringLayer(0, 0.05, 4, c0, c1, 'band', false)] });
+
+    let r = 0.05, ring = 0;
+    const rings = [];
+    while (r < 0.53) {
+      const w = 0.035 + rand() * 0.04;
+      const r1 = Math.min(0.54, r + w);
+      const k = r < 0.16 ? pick([4, 6, 8]) : r < 0.34 ? pick([8, 12]) : pick([12, 16, 24]);
+      const [bg, fg] = two();
+      const motif = pick(['petal', 'petal', 'teeth', 'flame', 'scallop', 'lattice', 'stripes', 'dots', 'dots']);
+      const parts = [ringLayer(r, r1 - 0.007, k, bg, fg, motif, rand() < 0.5)];
+      parts.push(ringLayer(r1 - 0.007, r1, 8, rand() < 0.7 ? 0 : 1, 0, 'band', false));
+      rings.push(parts);
+      r = r1;
+    }
+    rings.forEach((parts, i) => layers.push({ name: `ring ${i + 1} of ${rings.length}`, parts }));
+
+    // courtyard: corners between the last ring and the palace wall
+    const yard = pick([3, 4, 7]);
+    layers.push({ name: 'the courtyard', parts: [{
+      rmin: 0.54, rmax: 0.83, k: 4, phase: false,
+      color(x, y, r) { return x < 0.58 ? yard : -1; }
+    }]});
+
+    // palace walls with four T-shaped gates (in the wedge, x >= y >= 0)
+    const [wA, wB] = two();
+    layers.push({ name: 'the palace walls and gates', parts: [{
+      rmin: 0.58, rmax: 0.94, k: 4, phase: false,
+      color(x, y) {
+        if (y < 0.055 && x >= 0.58 && x < 0.66) return -1;             // gate opening
+        if (x >= 0.66 && x < 0.72 && y < 0.16) return y < 0.055 ? 1 : wB; // porch
+        if (x >= 0.58 && x < 0.66) {
+          if (x < 0.595) return 0;
+          if (x < 0.64) return wA;
+          return 2;
+        }
+        return -1;
+      }
+    }]});
+
+    // garden between the palace and the circle of fire
+    const garden = pick([4, 5, 6]);
+    layers.push({ name: 'the outer garden', parts: [{
+      rmin: 0.58, rmax: 0.935, k: 8, phase: false,
+      color(x, y, r) {
+        const ax = Math.max(Math.abs(x), Math.abs(y));
+        if (ax < 0.66) return -1;
+        if (ax < 0.72 && Math.min(Math.abs(x), Math.abs(y)) < 0.16) return -1;
+        return rand() < 0.55 ? garden : -1;
+      }
+    }]});
+
+    layers.push({ name: 'the circle of fire', parts: [
+      ringLayer(0.935, 0.945, 8, 0, 0, 'band', false),
+      ringLayer(0.945, 1.0, 40, 1, 2, 'flame', false),
+    ]});
+    return layers;
+  }
+
+  // ---------- building ----------
+  let layers = [], li = 0, pi = 0, attemptsLeft = 0, phase = 'build', seed = 0;
+
+  function startPart() {
+    const p = layers[li].parts[pi];
+    const area = Math.PI * (p.rmax * p.rmax - p.rmin * p.rmin);
+    attemptsLeft = Math.ceil(area * DENS / (2 * p.k));
+    elStage.textContent = 'Laying ' + layers[li].name;
+  }
+
+  function step(budget) {
+    while (budget > 0 && phase === 'build') {
+      if (attemptsLeft <= 0) {
+        pi++;
+        if (pi >= layers[li].parts.length) { pi = 0; li++; }
+        if (li >= layers.length) { finish(); return; }
+        startPart();
+      }
+      const p = layers[li].parts[pi];
+      const wedge = Math.PI / p.k;
+      while (attemptsLeft > 0 && budget > 0) {
+        attemptsLeft--;
+        const r = Math.sqrt(rand() * (p.rmax * p.rmax - p.rmin * p.rmin) + p.rmin * p.rmin);
+        const phi = rand() * wedge;
+        const lx = r * Math.cos(phi), ly = r * Math.sin(phi);
+        const c = p.color(lx, ly, r, phi);
+        if (c < 0) continue;
+        const off = p.phase ? wedge : 0;
+        for (let j = 0; j < p.k; j++) {
+          const base = j * 2 * wedge + off;
+          for (const sgn of [1, -1]) {
+            if (n >= MAX) break;
+            const a = base + sgn * phi + (rand() - 0.5) * 0.004;
+            const rr = r + (rand() - 0.5) * 0.003;
+            gx[n] = rr * Math.cos(a); gy[n] = rr * Math.sin(a);
+            gs[n] = c * SHADES + Math.floor(rand() * SHADES);
+            plot(n); n++;
+          }
+        }
+        budget -= 2 * p.k;
+      }
+    }
+    elCount.textContent = n.toLocaleString() + ' grains';
+  }
+
+  function finish() {
+    phase = 'done';
+    elStage.textContent = 'Complete. It will not be kept.';
+    elCount.textContent = n.toLocaleString() + ' grains';
+  }
+
+  function begin() {
+    seed = Math.floor(Math.random() * 9000) + 1000;
+    elNo.textContent = 'Mandala no. ' + seed;
+    layers = makeDesign(seed);
+    li = 0; pi = 0; n = 0; phase = 'build';
+    ctx.clearRect(0, 0, size, size);
+    startPart();
+    btn.textContent = 'Sweep away';
+    btn.disabled = false;
+    if (reduce) step(Infinity);
+  }
+
+  // ---------- sweeping ----------
+  let sw = null;
+  function sweep() {
+    phase = 'sweep';
+    btn.disabled = true;
+    elStage.textContent = 'Sweeping toward the centre';
+    const r = new Float32Array(n), th = new Float32Array(n), pr = new Float32Array(n), pt = new Float32Array(n), ts = new Float32Array(n);
+    const buckets = STYLES.map(() => []);
+    for (let i = 0; i < n; i++) {
+      r[i] = Math.hypot(gx[i], gy[i]);
+      th[i] = Math.atan2(gy[i], gx[i]);
+      // eight strokes, edge first, like a brush drawn inward along each axis
+      const sector = ((th[i] % (Math.PI / 4)) + Math.PI / 4) % (Math.PI / 4) / (Math.PI / 4);
+      ts[i] = (1 - Math.min(1, r[i])) * 0.45 + Math.abs(sector - 0.5) * 0.18 + Math.random() * 0.05;
+      const pileR = Math.pow(Math.random(), 0.7) * 0.11;
+      pr[i] = pileR;
+      pt[i] = Math.random() * Math.PI * 2;
+      buckets[gs[i]].push(i);
+    }
+    sw = { r, th, pr, pt, ts, buckets, t0: performance.now(), dur: reduce ? 400 : 5200 };
+  }
+
+  const ease = p => p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+
+  function drawSweep(now) {
+    const t = Math.min(1, (now - sw.t0) / sw.dur);
+    ctx.clearRect(0, 0, size, size);
+    const s = half * 0.98, g = grain;
+    const blend = Math.max(0, (t - 0.6) / 0.4);
+    sw.buckets.forEach((idx, st) => {
+      ctx.fillStyle = STYLES[st];
+      ctx.globalAlpha = 1 - blend * 0.85;
+      for (const i of idx) {
+        const p = ease(Math.min(1, Math.max(0, (t - sw.ts[i]) / 0.4)));
+        const x0 = sw.r[i] * Math.cos(sw.th[i]), y0 = sw.r[i] * Math.sin(sw.th[i]);
+        const x1 = sw.pr[i] * Math.cos(sw.pt[i]), y1 = sw.pr[i] * Math.sin(sw.pt[i]);
+        const a = sw.th[i] + p * 0.9;
+        const rr = sw.r[i] * (1 - p);
+        const x = rr * Math.cos(a) * (1 - p) + x1 * p + 0 * x0, y = rr * Math.sin(a) * (1 - p) + y1 * p + 0 * y0;
+        ctx.fillRect(half + x * s - g / 2, half - y * s - g / 2, g, g);
+      }
+    });
+    if (blend > 0) {
+      ctx.globalAlpha = blend;
+      ctx.fillStyle = PILE_STYLE;
+      for (let i = 0; i < n; i += 2) {
+        const p = ease(Math.min(1, Math.max(0, (t - sw.ts[i]) / 0.4)));
+        if (p < 1) continue;
+        ctx.fillRect(half + sw.pr[i] * Math.cos(sw.pt[i]) * s - g / 2, half - sw.pr[i] * Math.sin(sw.pt[i]) * s - g / 2, g, g);
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (t >= 1) {
+      phase = 'pour';
+      sw.t1 = now;
+      elStage.textContent = 'Poured into the river';
+    }
+  }
+
+  function drawPour(now) {
+    const t = Math.min(1, (now - sw.t1) / (reduce ? 300 : 2600));
+    ctx.clearRect(0, 0, size, size);
+    const s = half * 0.98, g = grain;
+    ctx.fillStyle = PILE_STYLE;
+    ctx.globalAlpha = 1 - t;
+    for (let i = 0; i < n; i += 2) {
+      // the pile drifts off one edge like sand into a current
+      const drift = t * t * (0.9 + (i % 7) * 0.08);
+      const x = sw.pr[i] * Math.cos(sw.pt[i]) + drift * 1.4;
+      const y = sw.pr[i] * Math.sin(sw.pt[i]) - drift * 0.25 + Math.sin(i + t * 6) * 0.01 * t;
+      ctx.fillRect(half + x * s - g / 2, half - y * s - g / 2, g, g);
+    }
+    ctx.globalAlpha = 1;
+    if (t >= 1) {
+      phase = 'empty';
+      ctx.clearRect(0, 0, size, size);
+      elStage.textContent = 'The board is empty';
+      elCount.textContent = n.toLocaleString() + ' grains, returned';
+      btn.textContent = 'Begin again';
+      btn.disabled = false;
+      sw = null;
+    }
+  }
+
+  function loop(now) {
+    if (phase === 'build') step(rate);
+    else if (phase === 'sweep') drawSweep(now);
+    else if (phase === 'pour') drawPour(now);
+    requestAnimationFrame(loop);
+  }
+
+  btn.addEventListener('click', () => {
+    if (phase === 'build' || phase === 'done') sweep();
+    else if (phase === 'empty') begin();
+  });
+  paceBtns.forEach(b => b.addEventListener('click', () => {
+    rate = +b.dataset.rate;
+    paceBtns.forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+  }));
+
+  let rt;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(resize, 120); });
+
+  resize();
+  begin();
+  requestAnimationFrame(loop);
+})();
+</script>
+
+</body></html>
